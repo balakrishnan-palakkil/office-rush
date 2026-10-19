@@ -1,21 +1,19 @@
-import { getStore } from '@netlify/blobs';
-
 export default async (req, context) => {
-  const store = getStore('leaderboard');
+  // Use Netlify's built-in global blobs store (No npm install required!)
+  const store = Netlify.blobs.getStore('leaderboard');
 
-  // Handle saving a new score (POST)
   if (req.method === 'POST') {
     try {
       const body = await req.json();
-      const name = body.name || 'Satya';
-      const score = parseInt(body.score, 10) || 0;
-      const timestamp = Date.now();
+      const newEntry = { name: body.name || 'Satya', score: body.score || 0, date: Date.now() };
 
-      // Retrieve existing scores or start fresh
-      let scores = (await store.get('scores', { type: 'json' })) || [];
-      
+      // Fetch existing scores
+      let scores = [];
+      const existing = await store.get('scores', { type: 'json' });
+      if (existing) scores = existing;
+
       // Add new score, sort descending, and keep top 10
-      scores.push({ name, score, timestamp });
+      scores.push(newEntry);
       scores.sort((a, b) => b.score - a.score);
       scores = scores.slice(0, 10);
 
@@ -25,18 +23,23 @@ export default async (req, context) => {
       return new Response(JSON.stringify({ success: true, scores }), {
         headers: { 'Content-Type': 'application/json' },
       });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    } catch (err) {
+      return new Response(JSON.stringify({ success: false, error: err.message }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
   }
 
-  // Handle fetching the leaderboard (GET)
-  if (req.method === 'GET') {
+  // GET request: Return current leaderboard
+  try {
     const scores = (await store.get('scores', { type: 'json' })) || [];
     return new Response(JSON.stringify(scores), {
       headers: { 'Content-Type': 'application/json' },
     });
+  } catch (err) {
+    return new Response(JSON.stringify([]), {
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
-
-  return new Response('Method Not Allowed', { status: 405 });
 };
