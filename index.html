@@ -28,61 +28,6 @@
                 }
             }
         }
-
-            // Fetch and display leaderboard on game start / home screen
-            async function loadLeaderboard() {
-            try {
-                const response = await fetch('/.netlify/functions/leaderboard');
-                const scores = await response.json();
-                renderLeaderboardUI(scores);
-            } catch (err) {
-                console.error("Could not load leaderboard", err);
-            }
-            }
-
-            // Submit score on Game Over
-            async function submitScoreToLeaderboard(playerName, finalScore) {
-            if (!playerName) playerName = "Satya";
-            try {
-                const response = await fetch('/.netlify/functions/leaderboard', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: playerName, score: Math.floor(finalScore) })
-                });
-                const data = await response.json();
-                if (data.success) {
-                renderLeaderboardUI(data.scores);
-                }
-            } catch (err) {
-                console.error("Could not submit score", err);
-            }
-            }
-
-            // Render UI list
-            function renderLeaderboardUI(scores) {
-            const container = document.getElementById('global-leaderboard-list');
-            if (!container) return;
-            
-            if (scores.length === 0) {
-                container.innerHTML = `<div style="text-align: center; color: #94a3b8; font-size: 14px;">No scores yet. Be the first!</div>`;
-                return;
-            }
-
-            container.innerHTML = scores.map((entry, index) => `
-                <div style="display: flex; justify-content: space-between; padding: 6px 10px; margin-bottom: 4px; background: rgba(255,255,255,0.05); border-radius: 6px; font-size: 14px;">
-                <span style="color: #f8fafc;">#${index + 1} &nbsp; <strong>${escapeHTML(entry.name)}</strong></span>
-                <span style="color: #facc15; font-weight: bold;">${entry.score} pts</span>
-                </div>
-            `).join('');
-            }
-
-            function escapeHTML(str) {
-            return str.replace(/[&<>'"]/g, 
-                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag)
-            );
-            }
-
-            // Call loadLeaderboard() when your game menu opens!
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
@@ -189,8 +134,8 @@
             </div>
 
             <!-- HOME / START SCREEN -->
-            <div id="start-screen" class="absolute inset-0 z-30 flex flex-col justify-between bg-slate-950/95 backdrop-blur-lg p-6 text-center">
-                <div class="pt-8">
+            <div id="start-screen" class="absolute inset-0 z-30 flex flex-col justify-between bg-slate-950/95 backdrop-blur-lg p-6 text-center overflow-y-auto">
+                <div class="pt-6">
                     <div class="inline-flex items-center space-x-2 bg-slate-900 border border-slate-800 px-4 py-1.5 rounded-full mb-3">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
                         <span class="text-xs font-black tracking-widest text-slate-300 uppercase">SATYA'S COMMUTE</span>
@@ -198,26 +143,46 @@
                     <h1 class="text-5xl font-black text-white glow-title uppercase italic tracking-tight">OFFICE RUSH</h1>
                     <p class="text-slate-400 text-base font-bold mt-2">Drive the Pearl White MG Hector SUV to work!</p>
                     
-                    <!-- High Score Container -->
-                    <div class="mt-4 bg-slate-900/80 border border-slate-800 rounded-2xl p-3 inline-flex items-center space-x-3">
-                        <span class="text-2xl">🏆</span>
-                        <div class="text-left">
-                            <div class="text-[10px] text-slate-400 font-black uppercase tracking-wider">PERSONAL BEST</div>
-                            <div id="best-score-display" class="text-xl font-black text-techCyan">0</div>
+                    <!-- High Score Containers -->
+                    <div class="grid grid-cols-2 gap-3 mt-4">
+                        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 flex items-center space-x-3">
+                            <span class="text-2xl">🏆</span>
+                            <div class="text-left">
+                                <div class="text-[9px] text-slate-400 font-black uppercase tracking-wider">PERSONAL BEST</div>
+                                <div id="best-score-display" class="text-xl font-black text-techCyan">0</div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 flex items-center space-x-3">
+                            <span class="text-2xl">🌐</span>
+                            <div class="text-left">
+                                <div class="text-[9px] text-slate-400 font-black uppercase tracking-wider">GLOBAL RECORD</div>
+                                <div id="global-best-display" class="text-xl font-black text-amber-400">Loading...</div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Pearl White SUV Showcase Preview -->
-                <div class="my-auto py-2 flex flex-col items-center justify-center">
+                <div class="my-3 flex flex-col items-center justify-center">
                     <div class="w-36 h-20 bg-slate-900/60 rounded-2xl border border-slate-800 flex items-center justify-center relative shadow-inner">
                         <span class="text-xs text-slate-500 font-extrabold absolute top-2">PEARL WHITE HECTOR</span>
                         <div class="mt-4 text-4xl transform -rotate-12">🚘</div>
                     </div>
                 </div>
 
+                <!-- Global Leaderboard Preview Box -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 text-left mb-2">
+                    <div class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2 flex justify-between items-center">
+                        <span>🏆 GLOBAL LEADERBOARD</span>
+                        <span class="text-techCyan text-[9px]">NETLIFY BLOBS</span>
+                    </div>
+                    <div id="global-leaderboard-list" class="space-y-1 max-h-28 overflow-y-auto">
+                        <div class="text-center text-slate-500 text-xs py-2">Loading top drivers...</div>
+                    </div>
+                </div>
+
                 <!-- Action Buttons -->
-                <div class="w-full space-y-3">
+                <div class="w-full space-y-3 pb-4">
                     <button onclick="startGame()" class="touch-btn w-full py-4 rounded-2xl bg-gradient-to-r from-techCyan via-emerald-400 to-cyan-500 text-slate-950 font-black text-2xl tracking-wider uppercase shadow-lg shadow-cyan-500/20">
                         DRIVE TO OFFICE 🚗💨
                     </button>
@@ -230,8 +195,6 @@
                         </button>
                     </div>
                 </div>
-
-                <div class="text-slate-600 text-[11px] font-bold pb-2">Designed for Mobile & Desktop Browsers</div>
             </div>
 
             <!-- Rules Modal -->
@@ -292,16 +255,17 @@
                 <div class="space-y-3 w-full max-w-xs">
                     <button onclick="togglePause()" class="touch-btn w-full py-4 rounded-2xl bg-techCyan text-slate-950 font-black text-lg uppercase">RESUME COMMUTE</button>
                     <button onclick="restartGame()" class="touch-btn w-full py-4 rounded-2xl bg-slate-800 border border-slate-700 text-white font-black text-lg uppercase">RESTART</button>
+                    <button onclick="goToHome()" class="touch-btn w-full py-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-300 font-extrabold text-base uppercase">MAIN MENU 🏠</button>
                 </div>
             </div>
 
             <!-- Game Over Screen -->
-            <div id="gameover-screen" class="absolute inset-0 z-30 hidden flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-md p-6 text-center">
-                <div class="text-5xl mb-2">💥🚗</div>
+            <div id="gameover-screen" class="absolute inset-0 z-30 hidden flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-md p-6 text-center overflow-y-auto">
+                <div class="text-4xl mb-1">💥🚗</div>
                 <div class="text-mgRed font-black text-xs uppercase tracking-widest mb-1">ACCIDENT REPORT</div>
                 <h2 class="text-3xl font-black text-white mb-2">HECTOR TOTALED!</h2>
                 
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 w-full max-w-xs space-y-2 my-4">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 w-full max-w-xs space-y-2 my-2">
                     <div class="flex justify-between items-center text-sm">
                         <span class="text-slate-400 font-bold">TOTAL SCORE:</span>
                         <span id="final-score" class="text-xl text-white font-black">0</span>
@@ -313,14 +277,28 @@
                     <div id="new-high-score-tag" class="hidden text-techCyan text-xs font-black uppercase pt-1 tracking-widest">🏆 NEW RECORD HIGH SCORE!</div>
                 </div>
 
-                <button onclick="restartGame()" class="touch-btn w-full max-w-xs py-4 rounded-2xl bg-gradient-to-r from-techCyan via-emerald-400 to-cyan-500 text-slate-950 font-black text-xl uppercase shadow-lg">
-                    DRIVE AGAIN 🚗
-                </button>
+                <!-- Name Entry for Leaderboard -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 w-full max-w-xs mb-3">
+                    <label class="block text-[10px] font-black uppercase text-slate-400 mb-1 text-left">DRIVER NAME FOR LEADERBOARD</label>
+                    <div class="flex gap-2">
+                        <input id="player-name-input" type="text" value="Satya" maxlength="12" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-sm focus:outline-none focus:border-techCyan">
+                        <button onclick="submitCurrentScore()" class="touch-btn bg-techCyan text-slate-950 px-4 py-2 rounded-xl font-black text-xs uppercase">SUBMIT</button>
+                    </div>
+                </div>
+
+                <div class="w-full max-w-xs space-y-2">
+                    <button onclick="restartGame()" class="touch-btn w-full py-3.5 rounded-2xl bg-gradient-to-r from-techCyan via-emerald-400 to-cyan-500 text-slate-950 font-black text-lg uppercase shadow-lg">
+                        DRIVE AGAIN 🚗
+                    </button>
+                    <button onclick="goToHome()" class="touch-btn w-full py-3 rounded-2xl bg-slate-900 border border-slate-800 text-slate-300 font-extrabold text-sm uppercase">
+                        MAIN MENU 🏠
+                    </button>
+                </div>
             </div>
         </div>
 
         <!-- Touch Controls for iPhone / Android -->
-        <div id="touch-controls" class="p-3 bg-slate-950 border-t border-slate-800/80 flex flex-col gap-2 z-20 pb-6">
+        <div id="touch-controls" class="hidden p-3 bg-slate-950 border-t border-slate-800/80 flex flex-col gap-2 z-20 pb-6">
             <div class="flex justify-between items-center gap-2">
                 <button id="btn-left" class="touch-btn flex-1 py-4 bg-slate-900 active:bg-slate-800 border border-slate-800 rounded-2xl text-2xl font-black text-slate-200">◄</button>
                 <button id="btn-nitro" class="touch-btn w-28 py-4 bg-gradient-to-r from-mgRed to-red-600 border border-mgRed/80 rounded-2xl text-xs font-black text-white tracking-wider uppercase shadow-lg shadow-red-600/30">NITRO ⚡</button>
@@ -345,7 +323,7 @@
         let speed = 0;
         let baseSpeed = 85;
         let maxSpeed = 160;
-        let lives = 3; // 3 = Pristine, 2 = Light Damage, 1 = Heavy Damage, 0 = Crash
+        let lives = 3;
         let invulnerableTimer = 0;
         let nitro = 100;
         let isNitroActive = false;
@@ -419,12 +397,11 @@
                     osc.connect(gain); gain.connect(audioCtx.destination);
                     osc.start(now); osc.stop(now + 0.55);
                 } else if (type === 'coffee') {
-                    // Refreshing coffee chime
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(587.33, now); // D5
-                    osc.frequency.setValueAtTime(880, now + 0.1); // A5
+                    osc.frequency.setValueAtTime(587.33, now);
+                    osc.frequency.setValueAtTime(880, now + 0.1);
                     gain.gain.setValueAtTime(0.2, now);
                     gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
                     osc.connect(gain); gain.connect(audioCtx.destination);
@@ -480,6 +457,93 @@
 
         function updatePlayerTargetX() {
             player.targetX = roadLeft + (player.targetLane * laneWidth) + (laneWidth / 2) - (player.width / 2);
+        }
+
+        // Netlify Leaderboard Functions
+        async function loadLeaderboard() {
+            try {
+                const response = await fetch('/.netlify/functions/leaderboard');
+                const scores = await response.json();
+                renderLeaderboardUI(scores);
+            } catch (err) {
+                console.error("Could not load leaderboard", err);
+                const container = document.getElementById('global-leaderboard-list');
+                if (container) {
+                    container.innerHTML = `<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 6px;">Deploy on Netlify to activate Global Leaderboard</div>`;
+                }
+            }
+        }
+
+        async function submitScoreToLeaderboard(playerName, finalScore) {
+            if (!playerName) playerName = "Satya";
+            try {
+                const response = await fetch('/.netlify/functions/leaderboard', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: playerName, score: Math.floor(finalScore) })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    renderLeaderboardUI(data.scores);
+                }
+            } catch (err) {
+                console.error("Could not submit score", err);
+            }
+        }
+
+        function submitCurrentScore() {
+            const nameInput = document.getElementById('player-name-input');
+            const name = nameInput ? nameInput.value : 'Satya';
+            submitScoreToLeaderboard(name, score);
+            alert("Score submitted to global leaderboard!");
+        }
+
+        function renderLeaderboardUI(scores) {
+            const container = document.getElementById('global-leaderboard-list');
+            if (!container) return;
+            
+            if (!Array.isArray(scores) || scores.length === 0) {
+                container.innerHTML = `<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 6px;">No scores yet. Be the first!</div>`;
+                const topGlobal = document.getElementById('global-best-display');
+                if (topGlobal) topGlobal.innerText = '0';
+                return;
+            }
+
+            const topGlobal = document.getElementById('global-best-display');
+            if (topGlobal && scores.length > 0) {
+                topGlobal.innerText = scores[0].score;
+            }
+
+            container.innerHTML = scores.map((entry, index) => `
+                <div style="display: flex; justify-content: space-between; padding: 4px 8px; margin-bottom: 3px; background: rgba(255,255,255,0.05); border-radius: 6px; font-size: 13px;">
+                    <span style="color: #f8fafc;">#${index + 1} &nbsp; <strong>${escapeHTML(entry.name)}</strong></span>
+                    <span style="color: #facc15; font-weight: bold;">${entry.score} pts</span>
+                </div>
+            `).join('');
+        }
+
+        function escapeHTML(str) {
+            return String(str).replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag)
+            );
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            resizeCanvas();
+            loadLeaderboard();
+            updateControlsVisibility();
+        });
+
+        // Toggle mobile control panel visibility based on current game state
+        function updateControlsVisibility() {
+            const controlsEl = document.getElementById('touch-controls');
+            if (gameState === 'PLAYING' || gameState === 'PAUSED') {
+                controlsEl.classList.remove('hidden');
+                controlsEl.classList.add('flex');
+            } else {
+                controlsEl.classList.add('hidden');
+                controlsEl.classList.remove('flex');
+            }
         }
 
         // Desktop Key Handlers
@@ -545,6 +609,7 @@
             player.x = player.targetX;
 
             updateArmorUI();
+            updateControlsVisibility();
 
             document.getElementById('best-score-display').innerText = highScore;
             document.getElementById('start-screen').classList.add('hidden');
@@ -560,10 +625,21 @@
                 gameState = 'PLAYING';
                 document.getElementById('pause-screen').classList.add('hidden');
             }
+            updateControlsVisibility();
         }
 
         function restartGame() {
             startGame();
+        }
+
+        function goToHome() {
+            gameState = 'START';
+            updateControlsVisibility();
+            loadLeaderboard(); // Refresh leaderboard data
+            document.getElementById('best-score-display').innerText = highScore;
+            document.getElementById('start-screen').classList.remove('hidden');
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('pause-screen').classList.add('hidden');
         }
 
         function updateArmorUI() {
@@ -612,441 +688,286 @@
             const rand = Math.random();
 
             let type = 'car';
-            if (rand < 0.32) type = 'auto';            // Indian Auto Rickshaw
-            else if (rand < 0.48) type = 'cow';        // Stray Cow
-            else if (rand < 0.70) type = 'car';        // Black/White Sedan
-            else if (rand < 0.88) type = 'bru_coffee'; // BRU COFFEE REPAIR POWER-UP
-            else type = 'nitro';                       // Nitro Power-up
+            if (rand < 0.32) type = 'auto';
+            else if (rand < 0.48) type = 'cow';
+            else if (rand < 0.70) type = 'car';
+            else if (rand < 0.88) type = 'bru_coffee';
+            else type = 'nitro';
 
             entities.push({
                 lane: lane,
                 y: -100,
                 type: type,
                 speedOffset: type === 'cow' ? -4 : (type === 'auto' ? -2 : 0),
-                width: type === 'cow' ? 36 : (type === 'auto' ? 38 : (type === 'bru_coffee' || type === 'nitro' ? 34 : 42)),
-                height: type === 'cow' ? 50 : (type === 'auto' ? 58 : (type === 'bru_coffee' || type === 'nitro' ? 34 : 78))
+                width: 44,
+                height: 80
             });
         }
 
-        // Draw Pearl White MG Hector SUV with Damage States
-        function drawPearlWhiteMGHector(x, y, width, height, currentLives, isInvulnerable) {
-            ctx.save();
-            ctx.translate(x, y);
-
-            if (isInvulnerable && Math.floor(Date.now() / 80) % 2 === 0) {
-                ctx.globalAlpha = 0.4;
-            }
-
-            // Shield Glow when Nitro is active
-            if (isNitroActive) {
-                ctx.shadowBlur = 16;
-                ctx.shadowColor = '#00f5d4';
-                ctx.strokeStyle = '#00f5d4';
-                ctx.lineWidth = 3;
-                ctx.strokeRect(-4, -4, width + 8, height + 8);
-            }
-
-            // SUV Shadow
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-            ctx.fillRect(3, 8, width - 2, height);
-
-            // Pearl White Metallic SUV Body
-            ctx.fillStyle = '#f8fafc';
-            roundRect(ctx, 0, 0, width, height, 9, true, false);
-
-            // Subtle Pearl White Contours
-            ctx.fillStyle = '#e2e8f0';
-            ctx.fillRect(width * 0.1, height * 0.15, width * 0.8, height * 0.7);
-
-            // Sunroof Preview Pane
-            ctx.fillStyle = '#0f172a';
-            roundRect(ctx, width * 0.22, height * 0.42, width * 0.56, height * 0.22, 3, true, false);
-
-            // Windshield
-            ctx.fillStyle = '#1e293b';
-            roundRect(ctx, width * 0.12, height * 0.22, width * 0.76, height * 0.18, 3, true, false);
-
-            // Chrome Front Grille & MG Emblem
-            ctx.fillStyle = '#94a3b8';
-            ctx.fillRect(width * 0.2, 2, width * 0.6, 5);
-            ctx.fillStyle = '#e63946'; // Red Octagon MG Emblem
-            ctx.beginPath();
-            ctx.arc(width * 0.5, 4.5, 3.5, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Dual LED DRLs
-            ctx.fillStyle = '#00f5d4';
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = '#00f5d4';
-            ctx.fillRect(2, 1, 10, 3);
-            ctx.fillRect(width - 12, 1, 10, 3);
-            ctx.shadowBlur = 0;
-
-            // Damage Visuals State 1: Light Smoke & Scratches
-            if (currentLives <= 2) {
-                ctx.strokeStyle = '#334155';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(8, 16); ctx.lineTo(18, 32); ctx.lineTo(12, 42);
-                ctx.stroke();
-
-                // Light grey smoke puff
-                ctx.fillStyle = 'rgba(148, 163, 184, 0.4)';
-                ctx.beginPath();
-                ctx.arc(width * 0.3, height + (Math.random() * 8), 6, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            // Damage Visuals State 2: Dark Smoke & Sparks
-            if (currentLives <= 1) {
-                ctx.strokeStyle = '#020617';
-                ctx.lineWidth = 2.5;
-                ctx.beginPath();
-                ctx.moveTo(width - 8, 22); ctx.lineTo(width - 20, 48);
-                ctx.stroke();
-
-                // Dark heavy smoke puff
-                ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
-                ctx.beginPath();
-                ctx.arc(width * 0.7, height + (Math.random() * 12), 10, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Sparks
-                ctx.fillStyle = '#ffb703';
-                ctx.fillRect(width * 0.5 + (Math.random() * 12 - 6), height - 10, 3, 3);
-            }
-
-            ctx.restore();
-        }
-
-        // Draw Auto Rickshaw
-        function drawAutoRickshaw(x, y, width, height) {
-            ctx.save();
-            ctx.translate(x, y);
-
-            ctx.fillStyle = '#ffb703';
-            roundRect(ctx, 0, height * 0.3, width, height * 0.65, 6, true, false);
-
-            ctx.fillStyle = '#2a9d8f';
-            roundRect(ctx, 2, height * 0.1, width - 4, height * 0.3, 4, true, false);
-
-            ctx.fillStyle = '#1a1d20';
-            ctx.fillRect(4, height * 0.45, width - 8, height * 0.3);
-
-            ctx.restore();
-        }
-
-        // Draw Stray Cow
-        function drawCow(x, y, width, height) {
-            ctx.save();
-            ctx.translate(x, y);
-
-            ctx.fillStyle = '#f8fafc';
-            roundRect(ctx, 0, 0, width, height, 10, true, false);
-
-            ctx.fillStyle = '#78350f';
-            ctx.beginPath();
-            ctx.arc(10, 15, 8, 0, Math.PI * 2);
-            ctx.arc(26, 32, 10, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#451a03';
-            ctx.fillRect(-2, 6, 6, 4);
-            ctx.fillRect(width - 4, 6, 6, 4);
-
-            ctx.restore();
-        }
-
-        // Draw Traffic Sedans
-        function drawSedan(x, y, width, height) {
-            ctx.save();
-            ctx.translate(x, y);
-
-            ctx.fillStyle = '#1e293b';
-            roundRect(ctx, 0, 0, width, height, 6, true, false);
-
-            ctx.fillStyle = '#0f172a';
-            roundRect(ctx, width * 0.15, height * 0.3, width * 0.7, height * 0.4, 4, true, false);
-
-            ctx.fillStyle = '#ef4444';
-            ctx.fillRect(2, height - 4, 8, 3);
-            ctx.fillRect(width - 10, height - 4, 8, 3);
-
-            ctx.restore();
-        }
-
-        // Draw Power-ups (Bru Coffee & Nitro)
-        function drawPowerUp(x, y, type) {
-            ctx.save();
-            ctx.translate(x, y);
-
-            if (type === 'bru_coffee') {
-                // Rich Brown Bru Coffee Cup
-                ctx.shadowBlur = 12;
-                ctx.shadowColor = '#7f4f24';
-
-                ctx.fillStyle = '#7f4f24';
-                ctx.beginPath();
-                ctx.arc(17, 17, 16, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.fillStyle = '#ffb703';
-                ctx.font = '900 16px sans-serif';
-                ctx.fillText('☕', 8, 23);
-
-                // Floating "Bru" Label
-                ctx.fillStyle = '#ffb703';
-                ctx.font = '900 9px Outfit, sans-serif';
-                ctx.fillText('BRU', 8, -4);
-            } else if (type === 'nitro') {
-                ctx.shadowBlur = 12;
-                ctx.shadowColor = '#00f5d4';
-
-                ctx.fillStyle = '#00f5d4';
-                ctx.beginPath();
-                ctx.arc(17, 17, 16, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.fillStyle = '#0f172a';
-                ctx.font = '900 16px sans-serif';
-                ctx.fillText('⚡', 10, 23);
-            }
-
-            ctx.restore();
-        }
-
-        function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
-            ctx.beginPath();
-            ctx.moveTo(x + radius, y);
-            ctx.lineTo(x + width - radius, y);
-            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-            ctx.lineTo(x + width, y + height - radius);
-            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-            ctx.lineTo(x + radius, y + height);
-            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-            ctx.lineTo(x, y + radius);
-            ctx.quadraticCurveTo(x, y, x + radius, y);
-            ctx.closePath();
-            if (fill) ctx.fill();
-            if (stroke) ctx.stroke();
-        }
-
-        // Main Endless Update Loop
+        // Core Game Loop
         let lastTime = performance.now();
-        function update(now) {
-            if (gameState !== 'PLAYING') return;
+        function gameLoop(time) {
+            const dt = (time - lastTime) / 1000;
+            lastTime = time;
 
-            const delta = (now - lastTime) / 1000;
-            lastTime = now;
+            if (gameState === 'PLAYING') {
+                if (keys.nitro && nitro > 5) {
+                    isNitroActive = true;
+                    nitro = Math.max(0, nitro - dt * 35);
+                    speed = Math.min(maxSpeed * 1.4, speed + 70 * dt);
+                } else {
+                    isNitroActive = false;
+                    nitro = Math.min(100, nitro + dt * 12);
+                    if (keys.up) speed = Math.min(maxSpeed, speed + 35 * dt);
+                    else if (keys.down) speed = Math.max(40, speed - 50 * dt);
+                    else {
+                        if (speed > baseSpeed) speed -= 20 * dt;
+                        else if (speed < baseSpeed) speed += 20 * dt;
+                    }
+                }
 
-            if (invulnerableTimer > 0) {
-                invulnerableTimer -= delta;
-            }
+                const distanceDelta = (speed * dt) / 3600;
+                totalDistanceMeters += distanceDelta * 1000;
+                score += Math.floor(speed * dt * 0.5);
 
-            // Nitro Acceleration & Shield Logic
-            if (keys.nitro && nitro > 0) {
-                isNitroActive = true;
-                speed = Math.min(maxSpeed + 35, speed + 1.5);
-                nitro = Math.max(0, nitro - 0.8);
-            } else {
-                isNitroActive = false;
-                if (keys.up) speed = Math.min(maxSpeed, speed + 0.6);
-                else if (keys.down) speed = Math.max(30, speed - 1.2);
-                else speed += (baseSpeed - speed) * 0.05;
+                document.getElementById('score-display').innerText = score;
+                document.getElementById('distance-display').innerText = (totalDistanceMeters / 1000).toFixed(1);
+                document.getElementById('speed-display').innerText = Math.floor(speed);
 
-                if (nitro < 100) nitro = Math.min(100, nitro + 0.25);
-            }
+                document.getElementById('nitro-bar').style.width = nitro + '%';
+                const nitroText = document.getElementById('nitro-text');
+                if (isNitroActive) {
+                    nitroText.innerText = 'BOOSTING!';
+                    nitroText.className = 'text-mgRed font-bold animate-pulse';
+                } else {
+                    nitroText.innerText = nitro > 90 ? 'READY' : 'RECHARGING';
+                    nitroText.className = 'text-techCyan';
+                }
 
-            // Distance & Score Step
-            const distanceStepMeters = (speed * 0.28) * delta * 12;
-            totalDistanceMeters += distanceStepMeters;
-            score += Math.floor(distanceStepMeters * 2);
+                if (invulnerableTimer > 0) invulnerableTimer -= dt;
 
-            // Interpolate Steering
-            player.x += (player.targetX - player.x) * player.lerpSpeed;
+                player.x += (player.targetX - player.x) * player.lerpSpeed;
+                roadScroll = (roadScroll + speed * 2.5 * dt) % 60;
 
-            // Road texture scroll
-            roadScroll = (roadScroll + speed * 0.15) % 60;
+                spawnTimer += dt * (speed / baseSpeed);
+                if (spawnTimer > 1.3) {
+                    spawnTraffic();
+                    spawnTimer = 0;
+                }
 
-            // Update Particle FX
-            for (let pI = particles.length - 1; pI >= 0; pI--) {
-                let p = particles[pI];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.life -= 0.04;
-                if (p.life <= 0) particles.splice(pI, 1);
-            }
+                for (let i = entities.length - 1; i >= 0; i--) {
+                    let ent = entities[i];
+                    ent.y += (speed + ent.speedOffset) * dt * 1.8;
 
-            // Spawner
-            spawnTimer++;
-            if (spawnTimer > Math.max(22, 70 - Math.floor(speed * 0.22))) {
-                spawnTimer = 0;
-                spawnTraffic();
-            }
-
-            // Entities Loop
-            for (let i = entities.length - 1; i >= 0; i--) {
-                let e = entities[i];
-                let relativeSpeed = (speed * 0.1) - e.speedOffset;
-                e.y += relativeSpeed;
-
-                let eX = roadLeft + (e.lane * laneWidth) + (laneWidth / 2) - (e.width / 2);
-
-                // Collision Detection Box
-                if (
-                    player.x < eX + e.width &&
-                    player.x + player.width > eX &&
-                    player.y < e.y + e.height &&
-                    player.y + player.height > e.y
-                ) {
-                    if (e.type === 'bru_coffee') {
-                        // Bru Coffee Pickup
-                        if (lives < 3) {
-                            lives++;
+                    const entX = roadLeft + (ent.lane * laneWidth) + (laneWidth / 2) - (ent.width / 2);
+                    
+                    if (
+                        player.x < entX + ent.width - 10 &&
+                        player.x + player.width - 10 > entX &&
+                        player.y < ent.y + ent.height - 10 &&
+                        player.y + player.height - 10 > ent.y
+                    ) {
+                        if (ent.type === 'bru_coffee') {
+                            playSynthesizedSound('coffee');
+                            score += 500;
+                            if (lives < 3) lives++;
                             updateArmorUI();
-                        }
-                        score += 500;
-                        playSynthesizedSound('coffee');
-                        triggerToast('☕', '+1 BRU COFFEE REPAIR! (+500 PTS)');
-                        entities.splice(i, 1);
-                    } else if (e.type === 'nitro') {
-                        nitro = 100;
-                        score += 300;
-                        playSynthesizedSound('coffee');
-                        triggerToast('⚡', 'NITRO SHIELD RECHARGED!');
-                        entities.splice(i, 1);
-                    } else if (isNitroActive) {
-                        // Shield invincibility while in Nitro Boost
-                        score += 200;
-                        createImpactSparks(eX + e.width / 2, e.y + e.height / 2);
-                        playSynthesizedSound('crash');
-                        entities.splice(i, 1);
-                    } else if (invulnerableTimer <= 0) {
-                        // Collision Damage Hit
-                        lives--;
-                        invulnerableTimer = 1.5;
-                        speed = Math.max(25, speed - 35);
-                        createImpactSparks(player.x + player.width / 2, player.y + 20);
-
-                        if (e.type === 'auto') playSynthesizedSound('honk');
-                        else if (e.type === 'cow') playSynthesizedSound('moo');
-                        else playSynthesizedSound('crash');
-
-                        updateArmorUI();
-                        entities.splice(i, 1);
-
-                        // Game Over Condition
-                        if (lives <= 0) {
-                            gameState = 'GAMEOVER';
-                            let isNewHigh = false;
-                            if (score > highScore) {
-                                highScore = score;
-                                localStorage.setItem('office_rush_highscore_v2', highScore.toString());
-                                isNewHigh = true;
+                            triggerToast('☕', '+1 BRU COFFEE REPAIR (+500 PTS)!');
+                            entities.splice(i, 1);
+                            continue;
+                        } else if (ent.type === 'nitro') {
+                            playSynthesizedSound('coffee');
+                            nitro = 100;
+                            score += 300;
+                            triggerToast('⚡', 'NITRO FULLY RECHARGED (+300 PTS)!');
+                            entities.splice(i, 1);
+                            continue;
+                        } else {
+                            if (isNitroActive || invulnerableTimer > 0) {
+                                createImpactSparks(entX + ent.width / 2, ent.y + ent.height / 2);
+                                playSynthesizedSound('crash');
+                                score += 200;
+                                entities.splice(i, 1);
+                                continue;
                             }
 
-                            document.getElementById('final-score').innerText = score;
-                            document.getElementById('final-distance').innerText = (totalDistanceMeters / 1000).toFixed(2) + ' km';
-                            document.getElementById('new-high-score-tag').classList.toggle('hidden', !isNewHigh);
-                            document.getElementById('gameover-screen').classList.remove('hidden');
+                            playSynthesizedSound('crash');
+                            createImpactSparks(player.x + player.width / 2, player.y + player.height / 2);
+                            lives--;
+                            updateArmorUI();
+                            invulnerableTimer = 1.5;
+                            entities.splice(i, 1);
+
+                            if (ent.type === 'auto') playSynthesizedSound('honk');
+                            if (ent.type === 'cow') playSynthesizedSound('moo');
+
+                            if (lives <= 0) {
+                                gameState = 'GAMEOVER';
+                                updateControlsVisibility();
+                                if (score > highScore) {
+                                    highScore = score;
+                                    localStorage.setItem('office_rush_highscore_v2', highScore);
+                                    document.getElementById('new-high-score-tag').classList.remove('hidden');
+                                } else {
+                                    document.getElementById('new-high-score-tag').classList.add('hidden');
+                                }
+                                document.getElementById('final-score').innerText = score;
+                                document.getElementById('final-distance').innerText = (totalDistanceMeters / 1000).toFixed(1) + ' km';
+                                document.getElementById('gameover-screen').classList.remove('hidden');
+                                
+                                submitScoreToLeaderboard("Satya", score);
+                            }
+                            continue;
                         }
                     }
-                } else if (e.y > canvas.height + 100) {
-                    entities.splice(i, 1);
+
+                    if (ent.y > canvas.height + 100) {
+                        entities.splice(i, 1);
+                        score += 10;
+                    }
+                }
+
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    let p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= dt * 2;
+                    if (p.life <= 0) particles.splice(i, 1);
                 }
             }
 
-            // HUD Refresh
-            document.getElementById('score-display').innerText = score;
-            document.getElementById('distance-display').innerText = (totalDistanceMeters / 1000).toFixed(1);
-            document.getElementById('speed-display').innerText = Math.floor(speed);
-            document.getElementById('nitro-bar').style.width = nitro + '%';
-        }
-
-        // Render Canvas Frame
-        function render() {
+            // --- RENDER GRAPHICS ---
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Ground Background
-            ctx.fillStyle = '#090d16';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Sidewalk Shoulders
-            ctx.fillStyle = '#1e293b';
-            ctx.fillRect(0, 0, roadLeft, canvas.height);
-            ctx.fillRect(roadLeft + roadWidth, 0, canvas.width - (roadLeft + roadWidth), canvas.height);
-
-            // Road Asphalt
-            ctx.fillStyle = '#121620';
+            // Asphalt Road
+            ctx.fillStyle = '#111827';
             ctx.fillRect(roadLeft, 0, roadWidth, canvas.height);
 
-            // Glowing Road Borders
+            // Neon Borders
             ctx.strokeStyle = '#00f5d4';
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 4;
+            ctx.shadowColor = '#00f5d4';
+            ctx.shadowBlur = 12;
             ctx.beginPath();
             ctx.moveTo(roadLeft, 0); ctx.lineTo(roadLeft, canvas.height);
             ctx.moveTo(roadLeft + roadWidth, 0); ctx.lineTo(roadLeft + roadWidth, canvas.height);
             ctx.stroke();
+            ctx.shadowBlur = 0;
 
-            // Scrolling Dashed Lane Lines
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([20, 20]);
+            // Lane Dividers
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([30, 30]);
             ctx.lineDashOffset = -roadScroll;
-
             for (let i = 1; i < laneCount; i++) {
-                let x = roadLeft + (i * laneWidth);
+                const lx = roadLeft + (i * laneWidth);
                 ctx.beginPath();
-                ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height);
+                ctx.moveTo(lx, 0);
+                ctx.lineTo(lx, canvas.height);
                 ctx.stroke();
             }
             ctx.setLineDash([]);
 
-            // Scenery Signs
-            ctx.fillStyle = '#00f5d4';
-            ctx.fillRect(4, ((roadScroll * 4) % canvas.height), roadLeft - 8, 30);
-            ctx.fillStyle = '#0f172a';
-            ctx.font = '900 10px Outfit';
-            ctx.fillText('OFFICE ➔', 6, ((roadScroll * 4) % canvas.height) + 18);
-
-            // Render Particle FX
-            for (let p of particles) {
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = p.life;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size || 3, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.globalAlpha = 1.0;
-
             // Render Entities
-            for (let e of entities) {
-                let eX = roadLeft + (e.lane * laneWidth) + (laneWidth / 2) - (e.width / 2);
-                if (e.type === 'auto') drawAutoRickshaw(eX, e.y, e.width, e.height);
-                else if (e.type === 'cow') drawCow(eX, e.y, e.width, e.height);
-                else if (e.type === 'car') drawSedan(eX, e.y, e.width, e.height);
-                else if (e.type === 'bru_coffee' || e.type === 'nitro') drawPowerUp(eX, e.y, e.type);
+            entities.forEach(ent => {
+                const ex = roadLeft + (ent.lane * laneWidth) + (laneWidth / 2) - (ent.width / 2);
+                const ey = ent.y;
+
+                ctx.save();
+                if (ent.type === 'bru_coffee') {
+                    ctx.fillStyle = '#7f4f24';
+                    ctx.beginPath();
+                    ctx.roundRect(ex + 8, ey + 15, 28, 36, 6);
+                    ctx.fill();
+                    ctx.fillStyle = '#ffb703';
+                    ctx.fillRect(ex + 6, ey + 10, 32, 6);
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText('BRU', ex + 10, ey + 38);
+                } else if (ent.type === 'nitro') {
+                    ctx.fillStyle = '#00f5d4';
+                    ctx.beginPath();
+                    ctx.roundRect(ex + 10, ey + 10, 24, 40, 6);
+                    ctx.fill();
+                    ctx.font = 'bold 14px sans-serif';
+                    ctx.fillStyle = '#030712';
+                    ctx.fillText('⚡', ex + 13, ey + 35);
+                } else if (ent.type === 'auto') {
+                    ctx.fillStyle = '#eab308';
+                    ctx.beginPath();
+                    ctx.roundRect(ex + 4, ey + 5, 36, 65, 12);
+                    ctx.fill();
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(ex + 8, ey + 15, 28, 20);
+                } else if (ent.type === 'cow') {
+                    ctx.fillStyle = '#cbd5e1';
+                    ctx.beginPath();
+                    ctx.ellipse(ex + 22, ey + 35, 20, 32, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#475569';
+                    ctx.fillRect(ex + 14, ey + 12, 16, 12);
+                } else {
+                    ctx.fillStyle = Math.random() > 0.5 ? '#3b82f6' : '#64748b';
+                    ctx.beginPath();
+                    ctx.roundRect(ex + 4, ey + 4, 36, 76, 10);
+                    ctx.fill();
+                    ctx.fillStyle = '#fef08a';
+                    ctx.fillRect(ex + 6, ey + 6, 8, 4);
+                    ctx.fillRect(ex + 30, ey + 6, 8, 4);
+                }
+                ctx.restore();
+            });
+
+            // Render MG Hector
+            if (gameState === 'PLAYING' || gameState === 'PAUSED') {
+                ctx.save();
+                if (invulnerableTimer > 0 && Math.floor(Date.now() / 80) % 2 === 0) {
+                    ctx.globalAlpha = 0.4;
+                }
+
+                if (isNitroActive) {
+                    ctx.fillStyle = '#00f5d4';
+                    ctx.fillRect(player.x + 10, player.y + player.height, 10, 24 + Math.random() * 16);
+                    ctx.fillRect(player.x + player.width - 20, player.y + player.height, 10, 24 + Math.random() * 16);
+                }
+
+                ctx.fillStyle = '#f8fafc';
+                ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.roundRect(player.x + 4, player.y + 6, player.width - 8, player.height - 12, 14);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                ctx.fillStyle = '#cbd5e1';
+                ctx.fillRect(player.x + 10, player.y + 6, player.width - 20, 8);
+                ctx.fillStyle = '#e63946';
+                ctx.beginPath();
+                ctx.arc(player.x + player.width / 2, player.y + 10, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(player.x + 10, player.y + 24, player.width - 20, 22);
+                ctx.fillRect(player.x + 12, player.y + 50, player.width - 24, 16);
+
+                ctx.fillStyle = '#00f5d4';
+                ctx.fillRect(player.x + 4, player.y + 8, 6, 14);
+                ctx.fillRect(player.x + player.width - 10, player.y + 8, 6, 14);
+
+                ctx.restore();
             }
 
-            // Render Pearl White MG Hector SUV
-            if (gameState !== 'GAMEOVER') {
-                drawPearlWhiteMGHector(player.x, player.y, player.width, player.height, lives, invulnerableTimer > 0);
-            }
-        }
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
 
-        // Animation Frame Loop
-        function gameLoop(now) {
-            update(now);
-            render();
             requestAnimationFrame(gameLoop);
         }
 
-        document.getElementById('best-score-display').innerText = highScore;
-        resizeCanvas();
-        requestAnimationFrame((now) => {
-            lastTime = now;
-            gameLoop(now);
-        });
+        requestAnimationFrame(gameLoop);
     </script>
 </body>
 </html>
