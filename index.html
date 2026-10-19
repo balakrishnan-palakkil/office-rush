@@ -282,7 +282,7 @@
                     <label class="block text-[10px] font-black uppercase text-slate-400 mb-1 text-left">DRIVER NAME FOR LEADERBOARD</label>
                     <div class="flex gap-2">
                         <input id="player-name-input" type="text" value="Satya" maxlength="12" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-sm focus:outline-none focus:border-techCyan">
-                        <button onclick="submitCurrentScore()" class="touch-btn bg-techCyan text-slate-950 px-4 py-2 rounded-xl font-black text-xs uppercase">SUBMIT</button>
+                        <button id="submit-score-btn" onclick="submitCurrentScore()" class="touch-btn bg-techCyan text-slate-950 px-4 py-2 rounded-xl font-black text-xs uppercase">SUBMIT</button>
                     </div>
                 </div>
 
@@ -483,19 +483,38 @@
                     body: JSON.stringify({ name: playerName, score: Math.floor(finalScore) })
                 });
                 const data = await response.json();
-                if (data.success) {
+                if (data.success && data.scores) {
                     renderLeaderboardUI(data.scores);
+                } else {
+                    await loadLeaderboard();
                 }
             } catch (err) {
                 console.error("Could not submit score", err);
             }
         }
 
-        function submitCurrentScore() {
+        async function submitCurrentScore() {
+            const btn = document.getElementById('submit-score-btn');
             const nameInput = document.getElementById('player-name-input');
             const name = nameInput ? nameInput.value : 'Satya';
-            submitScoreToLeaderboard(name, score);
-            alert("Score submitted to global leaderboard!");
+            
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = 'SAVING...';
+            }
+
+            await submitScoreToLeaderboard(name, score);
+            
+            if (btn) {
+                btn.innerText = 'SUBMITTED!';
+                btn.classList.remove('bg-techCyan');
+                btn.classList.add('bg-emerald-400');
+            }
+
+            // Redirect to home screen after submitting so player can view the leaderboard
+            setTimeout(() => {
+                goToHome();
+            }, 800);
         }
 
         function renderLeaderboardUI(scores) {
@@ -608,6 +627,14 @@
             updatePlayerTargetX();
             player.x = player.targetX;
 
+            // Reset submit button state
+            const btn = document.getElementById('submit-score-btn');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = 'SUBMIT';
+                btn.className = 'touch-btn bg-techCyan text-slate-950 px-4 py-2 rounded-xl font-black text-xs uppercase';
+            }
+
             updateArmorUI();
             updateControlsVisibility();
 
@@ -635,7 +662,7 @@
         function goToHome() {
             gameState = 'START';
             updateControlsVisibility();
-            loadLeaderboard(); // Refresh leaderboard data
+            loadLeaderboard();
             document.getElementById('best-score-display').innerText = highScore;
             document.getElementById('start-screen').classList.remove('hidden');
             document.getElementById('gameover-screen').classList.add('hidden');
@@ -707,7 +734,7 @@
         // Core Game Loop
         let lastTime = performance.now();
         function gameLoop(time) {
-            const dt = (time - lastTime) / 1000;
+            const dt = Math.min((time - lastTime) / 1000, 0.1);
             lastTime = time;
 
             if (gameState === 'PLAYING') {
@@ -747,17 +774,19 @@
                 if (invulnerableTimer > 0) invulnerableTimer -= dt;
 
                 player.x += (player.targetX - player.x) * player.lerpSpeed;
-                roadScroll = (roadScroll + speed * 2.5 * dt) % 60;
+                
+                // Restored Road & Traffic Speed Multipliers
+                roadScroll = (roadScroll + speed * 6.0 * dt) % 60;
 
                 spawnTimer += dt * (speed / baseSpeed);
-                if (spawnTimer > 1.3) {
+                if (spawnTimer > 1.1) {
                     spawnTraffic();
                     spawnTimer = 0;
                 }
 
                 for (let i = entities.length - 1; i >= 0; i--) {
                     let ent = entities[i];
-                    ent.y += (speed + ent.speedOffset) * dt * 1.8;
+                    ent.y += (speed + ent.speedOffset) * dt * 5.5;
 
                     const entX = roadLeft + (ent.lane * laneWidth) + (laneWidth / 2) - (ent.width / 2);
                     
@@ -814,8 +843,6 @@
                                 document.getElementById('final-score').innerText = score;
                                 document.getElementById('final-distance').innerText = (totalDistanceMeters / 1000).toFixed(1) + ' km';
                                 document.getElementById('gameover-screen').classList.remove('hidden');
-                                
-                                submitScoreToLeaderboard("Satya", score);
                             }
                             continue;
                         }
